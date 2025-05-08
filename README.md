@@ -1,54 +1,98 @@
-CT-GAN: Multi-Stage Text-to-Image Synthesis using Conditional GANs
-This project implements CT-GAN, a multi-stage Conditional GAN for generating realistic images from natural language descriptions. Inspired by StackGAN and AttnGAN, the model progressively enhances image quality from low (64×64) to high resolution (256×256), conditioned on char-CNN-RNN text embeddings.
+# CT-GAN: Contrastive Text-to-Image Generation using SSA
 
-📌 Features
-✅ Three-Stage Generator–Discriminator Architecture (64×64 → 128×128 → 256×256)
+This repository contains an implementation of the CT-GAN model, a GAN-based architecture for high-resolution text-to-image synthesis conditioned on natural language descriptions. This model extends StackGAN by integrating Contrastive Learning, Shift Self-Attention (SSA), and a multi-stage generation pipeline for 64x64, 128x128, and 256x256 image synthesis.
 
-✍️ Text-Conditioning using pre-trained char-CNN-RNN sentence embeddings
+## 🧠 Key Features
 
-🎯 Progressive Training with filtering modules for semantic refinement between stages
+* **Stage-wise GAN Architecture:**
 
-💾 Checkpointing support for resume training from any epoch and stage
+  * Stage I: 64x64 coarse image generation
+  * Stage II: 128x128 refinement with filtering
+  * Stage III: 256x256 fine image synthesis with global/local discriminators
 
-📷 Output Visualization using torchvision and IPython.display
+* **Shift Self-Attention (SSA):** Used in Generator for learning spatial features and improving visual details
 
-📊 Ready for FID / IS Score Evaluation and inference on custom text prompts
+* **Filtering Module:** Discards low-quality Stage I outputs before refining in higher stages
 
-🧱 Model Architecture
-Stage I: Generates low-resolution (64×64) images from noise + text
+* **Char-CNN-RNN Embeddings:** Pretrained text embeddings used as conditioning input
 
-Stage II: Refines to 128×128 using previous stage + filtered output
+* **CLIP Loss (optional):** Improves semantic alignment between text and image features
 
-Stage III: Further refines to 256×256 for photo-realism
+* **Checkpointing:** Model checkpoints saved every 50 epochs with full optimizer and network state
 
-🧪 Training
-# Stage 1
-python train.py --STAGE 1 --epoch 100 --NET_G '' --NET_D ''
+* **FID & Inception Score:** Evaluation-ready metrics for generated image quality
 
-# Stage 2 (uses pretrained Stage 1)
-python train.py --STAGE 2 --STAGE1_G path/to/stage1_G.pth --STAGE1_D path/to/stage1_D.pth
 
-# Stage 3 (uses pretrained Stage 2)
-python train.py --STAGE 3 --STAGE1_G path/to/stage2_G.pth --STAGE1_D path/to/stage2_D.pth
+## 🚀 Training Instructions
 
-🛠️ Tech Stack
-PyTorch, Torchvision
+1. **Preprocess Data:** Ensure CUB-200 dataset with bounding boxes and `text_c10` folder is set up.
+2. **Stage I Training:**
 
-char-CNN-RNN Embeddings
+```bash
+python train.py --stage 1 --epoch 200 --z_dim 100 --lr_gen 0.0002 --lr_dis 0.0002
+```
 
-PIL, IPython for visualization
+3. **Stage II Training:**
 
-Trained on: Kaggle Notebooks
+```bash
+python train.py --stage 2 --epoch 200 --STAGE1_G /path/to/gen1.pth --STAGE1_D /path/to/dis1.pth
+```
 
-📈 Results
-Generated samples at 256×256 conditioned on class-level descriptions from the CUB-200 dataset. Training pipeline supports extension to other datasets as well.
+4. **Stage III Training:**
 
-🤝 Contributions
-This project was structured in three stages of contributions:
+```bash
+python train.py --stage 3 --epoch 200 --STAGE1_G /path/to/gen1.pth --STAGE1_D /path/to/dis1.pth
+```
 
-Stage-I (64×64): Designed and trained initial text-conditioned GAN from scratch
+## 📊 Evaluation Metrics
 
-Stage-II (128×128): Integrated intermediate refinement with filtered Stage-I output
+* `FID`: Frechet Inception Distance between generated and real image distributions
+* `IS`: Inception Score on test set outputs
 
-Stage-III (256×256): Implemented final image enhancement and model checkpointing
+Run evaluation after training:
 
+```bash
+python evaluate.py --model_path /path/to/model.pth --stage 3
+```
+
+## ✨ Sample Results
+
+Output images during training are saved in `/output_images/epoch_X/batch_Y.png` and `epoch_X_final.png`. (Add `.png` examples here)
+
+## 👨‍💻 Contributions (for Resume / Mentorship)
+
+**Part 1: Data Loading + Stage I**
+
+* Implemented custom PyTorch `ImageDataset` for loading CUB-200 and `text_c10` captions
+* Trained Stage I GAN from scratch with char-CNN-RNN embeddings
+* Integrated checkpoint saving, optimizer resuming, and noise conditioning
+
+**Part 2: Stage II + Filtering**
+
+* Developed Stage II Generator & Discriminator with SSA and Filtering module
+* Loaded Stage I pretrained models and used filtering to reject poor samples
+* Refined image quality using intermediate representations
+
+**Part 3: Stage III + Evaluation**
+
+* Implemented 256x256 Generator and Discriminator using SSA and residual upsampling
+* Integrated CLIP-based loss for semantic alignment (optional)
+* Added FID & Inception Score evaluation pipeline
+* Fine-tuned models and visualized batch-wise image results
+
+## 📌 Dependencies
+
+* PyTorch
+* torchvision
+* numpy, pandas
+* PIL
+* scikit-learn
+* OpenCV
+
+## 📜 License
+
+MIT License
+
+---
+
+> Feel free to fork, modify, and contribute to this repository.
